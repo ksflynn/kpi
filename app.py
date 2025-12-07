@@ -32,7 +32,7 @@ def get_trains():
     }
 
     feed_1_2_3 = NYCTFeed("2")
-    sorted_trips = sorted(feed_1_2_3.trips, key=lambda trip: trip.departure_time)
+    sorted_trips = sorted(feed_1_2_3.trips, key=lambda trip: trip.stop_time_updates[-1].arrival)
     for trip in sorted_trips:
         # pre-sorting
         # for trip in feed_1_2_3.trips:
