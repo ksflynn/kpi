@@ -1,7 +1,8 @@
 import flask
-import datetime
+from datetime import datetime, timedelta
+import html
 import pytz
-import importlib
+import requests
 from nyct_gtfs.feed import NYCTFeed
 
 app = flask.Flask(__name__)
@@ -53,8 +54,8 @@ def get_trains():
                 if update.arrival is not None:
                     arrival_gmt = update.arrival
                     est = pytz.timezone('US/Eastern')
-                    arrival_est = datetime.datetime(arrival_gmt.year, arrival_gmt.month, arrival_gmt.day, arrival_gmt.hour, arrival_gmt.minute, arrival_gmt.second, tzinfo=est)
-                    arrival_est = arrival_est - datetime.timedelta(hours=5)
+                    arrival_est = datetime(arrival_gmt.year, arrival_gmt.month, arrival_gmt.day, arrival_gmt.hour, arrival_gmt.minute, arrival_gmt.second, tzinfo=est)
+                    arrival_est = arrival_est - timedelta(hours=5)
                     arrival_est = arrival_est.strftime('%H:%M')
                 else:
                     arrival_est = "-"
@@ -81,8 +82,8 @@ def get_trains():
             for update in stop_time_updates:
                 if update.arrival is not None:
                     est = pytz.timezone('US/Eastern')
-                    arrival_est = datetime.datetime(arrival_gmt.year, arrival_gmt.month, arrival_gmt.day, arrival_gmt.hour, arrival_gmt.minute, arrival_gmt.second, tzinfo=est)
-                    arrival_est = arrival_est - datetime.timedelta(hours=5)
+                    arrival_est = datetime(arrival_gmt.year, arrival_gmt.month, arrival_gmt.day, arrival_gmt.hour, arrival_gmt.minute, arrival_gmt.second, tzinfo=est)
+                    arrival_est = arrival_est - timedelta(hours=5)
                     arrival_est = arrival_est.strftime('%H:%M')
                 else:
                     arrival_est = "-"
@@ -94,6 +95,77 @@ def get_trains():
                     input['times_square_arrival'] = arrival_est 
 
             output[f'{trip.direction}-Q']['trips'].append(input)
+
+    response = flask.jsonify(output)
+    response.headers.add('Access-Control-Allow-Origin', '*')
+    return response
+
+# TODO: de-dupe some screenings in favor of the one with more metadata
+# TODO: sort by start time (daily)
+@app.route('/kpi/screenings')
+def get_screenings():
+    output = []
+    screening_data = {}
+    day = datetime.today()
+    for x in range(8):
+        day = day + timedelta(days=1)
+        daystring = day.strftime('%Y%m%d')
+        screenings = requests.get(f'https://www.screenslate.com/api/screenings/date?_format=json&date={daystring}&field_city_target_id=10969').json()
+        nids = ""
+        for screening in screenings:
+            nid = screening['nid']
+            screening_data[nid] = {
+                'start_time': screening['field_time'],
+                'note': screening['field_note']
+            }
+            nids += f'{nid}+'
+        nids = nids[:-1]
+        screening_details = requests.get(f'https://www.screenslate.com/api/screenings/id/{nids}?_format=json').json()
+        day_summary = {
+            'day': day.strftime('%A, %B %-d'),
+            'screenings': []
+        }
+        for detail in screening_details:
+            stripped_title = detail['media_title_labels'].split('>')
+            if len(stripped_title) == 1:
+                clean_title = stripped_title[0]
+            else:
+                clean_title = stripped_title[1].split('<')[0]
+            if clean_title == '' or clean_title == None:
+                clean_title = detail['title']
+            
+            stripped_venue_title = detail['venue_title'].split('>')
+            if len(stripped_venue_title) == 1:
+                clean_venue_title = stripped_venue_title[0]
+            else:
+                clean_venue_title = stripped_venue_title[1].split('<')[0]
+
+            if len(detail['media_title_info'].split('<span>')) >= 4:
+                stripped_year = detail['media_title_info'].split('<span>')[2].split('</span>')[0]
+                stripped_runtime = detail['media_title_info'].split('<span>')[3].split('</span>')[0]
+                stripped_format = detail['media_title_info'].split('<span>')[-1].split('</span>')[0]
+                title_info = detail['media_title_info']
+                if stripped_format == stripped_runtime or stripped_format == stripped_year:
+                    stripped_format = '-'
+            else:
+                stripped_year = '-'
+                stripped_runtime = '-'
+                stripped_format = '-'
+                
+
+            day_summary['screenings'].append(
+                {
+                    'title': html.unescape(clean_title.strip()),
+                    'venue_title': html.unescape(clean_venue_title.strip()),
+                    'format': detail['media_title_format'] or stripped_format,
+                    'link': detail['field_url'],
+                    'start_time': screening_data[detail['nid']]['start_time'],
+                    'run_time': stripped_runtime,
+                    'year': stripped_year,
+                    'note': html.unescape(screening_data[detail['nid']]['note'])
+                }
+            )
+        output.append(day_summary)
 
     response = flask.jsonify(output)
     response.headers.add('Access-Control-Allow-Origin', '*')
