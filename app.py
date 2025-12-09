@@ -11,8 +11,6 @@ app = flask.Flask(__name__)
 def hello_world():
     return 'Hello, World!'
 
-# TODO: provided time sorted list of northbound 2/3 trains, 
-# in a grid with estimated times of arrival to both wall street, penn, and columbus
 @app.route('/kpi/trains')
 def get_trains():
     output = {
@@ -81,6 +79,7 @@ def get_trains():
             stop_time_updates = trip.stop_time_updates
             for update in stop_time_updates:
                 if update.arrival is not None:
+                    arrival_gmt = update.arrival
                     est = pytz.timezone('US/Eastern')
                     arrival_est = datetime(arrival_gmt.year, arrival_gmt.month, arrival_gmt.day, arrival_gmt.hour, arrival_gmt.minute, arrival_gmt.second, tzinfo=est)
                     arrival_est = arrival_est - timedelta(hours=5)
