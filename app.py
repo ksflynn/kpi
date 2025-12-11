@@ -298,7 +298,7 @@ def get_hacker_news():
                 continue
             title = story_data['title']
             url = story_data['url'] if 'url' in story_data.keys() else None
-            comments = 131
+            comments = story_data['descendants']
             shortened_url = url if url == None else story_data['url'].split('/')[2].replace('www.','')
             output.append(
                 {
