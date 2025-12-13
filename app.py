@@ -15,10 +15,10 @@ app = flask.Flask(__name__)
 # app.config['REDIS_URL'] = "redis://localhost:6379/0"
 
 # EXTERNAL URL FOR TESTING LOCALLY
-app.config['REDIS_URL'] = 'rediss://red-d4udg92li9vc73d3dq5g:UV1ExfzjfZPgLJeE1J307BlwhdC3HyUz@virginia-keyvalue.render.com:6379'
+# app.config['REDIS_URL'] = 'rediss://red-d4udg92li9vc73d3dq5g:UV1ExfzjfZPgLJeE1J307BlwhdC3HyUz@virginia-keyvalue.render.com:6379'
 
 # INTERNAL URL FOR DEPLOYMENT
-# app.config['REDIS_URL'] = 'redis://red-d4udg92li9vc73d3dq5g:6379'
+app.config['REDIS_URL'] = 'redis://red-d4udg92li9vc73d3dq5g:6379'
 redis_client = redis.from_url(app.config['REDIS_URL'])
 
 # TODO: add daily / half hourly cache refresh cron jobs on screenings and news
