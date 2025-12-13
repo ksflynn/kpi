@@ -48,7 +48,7 @@ def get_cached_result(key, refresh_only=False):
         # if not, get fresh query
         time = datetime.now() - timedelta(minutes=1)
         datestring = time.strftime('%Y-%m-%d %H:%M')
-        readable_datestring = time.strftime('%d/%m/%Y %H:%M')
+        readable_datestring = time.strftime('%m/%d/%Y %H:%M')
         minutewise_trains_key = f'{key}_{datestring}'
         cached_result = redis_client.get(minutewise_trains_key)
         if cached_result is None:
@@ -63,7 +63,7 @@ def get_cached_result(key, refresh_only=False):
         # check if key exists with timestamp of current day
         # if not, get fresh query
         datestring = datetime.now().strftime('%Y-%m-%d')
-        readable_datestring = datetime.now().strftime('%d/%m/%Y')
+        readable_datestring = datetime.now().strftime('%m/%d/%Y')
         daily_screenings_key = f'{key}_{datestring}'
         cached_result = redis_client.get(daily_screenings_key)
         if cached_result is None:
@@ -80,7 +80,7 @@ def get_cached_result(key, refresh_only=False):
         # if not, get fresh query
         time = datetime.now().replace(minute=0)
         datestring = time.strftime('%Y-%m-%d %H:%M')
-        readable_datestring = time.strftime('%d/%m/%Y %H:%M')
+        readable_datestring = time.strftime('%m/%d/%Y %H:%M')
 
         hourly_hacker_news_key = f'{key}_{datestring}'
         cached_result = redis_client.get(hourly_hacker_news_key)
