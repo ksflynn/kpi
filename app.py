@@ -9,6 +9,9 @@ from requests.adapters import HTTPAdapter, Retry
 from letterboxdpy import user as letterboxduser
 import redis
 import json
+from nltk.book import text1
+import random
+import chapters
 
 app = flask.Flask(__name__)
 
@@ -469,7 +472,62 @@ def get_bluesky_trending():
     response.headers.add('Access-Control-Allow-Origin', '*')
     return response
 
-# TODO: auth bearer token grabbing
+@app.route('/kpi/moby-dick')
+def get_random_moby_dick_sentence():
+    tokens = text1.tokens
+    # 135 chapters + extras
+    # 0 = etymology
+    # 1 = extracts
+    # 137 = epilogue
+    chapter = random.randint(0, len(chapters.chapter_names))
+    chapter_start = 0
+    chapter_end = 0 
+    for index in range(0, len(tokens)):
+        if tokens[index] == 'CHAPTER':
+            if tokens[index+1] == str(chapter):
+                chapter_start = index + 2 # start after chapter header
+                for stop_index in range(chapter_start, len(tokens)):
+                    if tokens[stop_index] == 'CHAPTER':
+                        chapter_end = stop_index-1 # end one before next chapter header
+    sentences = []
+    sentence = ''
+    for index in range(chapter_start, chapter_end):
+        if tokens[index] not in ['.', '!', '?']:
+            sentence += f'{tokens[index]} '
+        else:
+            sentence += tokens[index]
+            sentences.append(sentence)
+            sentence = ''
+    sentence = sentences[random.randint(0, len(sentences)-1)]
+    clean_sentence = sentence.replace(' .', '.').replace(' !', '!').replace(' ?', '?').replace(' ,', ',').replace(' ;', ';').replace(' \'', '\'').replace('\' ', '\'').replace(' :', ':').replace('( ', '(').replace(' )', ')')
+    clean_sentence = clean_sentence.split('"')[-1]
+    
+    second_chapter_choice = random.randint(0, len(chapters.chapter_names))
+    third_chapter_choice = random.randint(0, len(chapters.chapter_names))
+
+
+    output = {
+        'sentence': clean_sentence.strip(),
+        'choices': 
+        [
+            {
+                'chapter': f'Chapter {chapter}: {chapters.chapter_names[chapter]}',
+                'answer': True
+            },
+            {
+                'chapter': f'Chapter {second_chapter_choice}: {chapters.chapter_names[second_chapter_choice]}',
+                'answer': False
+            },
+            {
+                'chapter': f'Chapter {third_chapter_choice}: {chapters.chapter_names[third_chapter_choice]}',
+                'answer': False
+            },
+        ]
+    }
+    response = flask.jsonify(output)
+    response.headers.add('Access-Control-Allow-Origin', '*')
+    return response
+
 # TODO: secret handling to get bearer token (research in Render)
 # @app.route('/kpi/wiki')
 # def get_wiki_news():
